@@ -55,6 +55,9 @@ function renderTSTrieNode(
         }
         const elementType = renderTSTrieNode(candidate.arrayChildren, options, indentLevel);
         types.push(`Array<${elementType.body}>`);
+        if (elementType.hasObject) {
+          hasObject = true;
+        }
         break;
       }
 
