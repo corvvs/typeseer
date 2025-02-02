@@ -53,7 +53,7 @@ function renderTSTrieNode(
             const childCount = childNode.count;
             // NOTE: < の場合は何かがおかしい
             const isRequired = baseCount <= childCount;
-            const keyPart = formatAsObjectKey(prop) + ':' + (isRequired ? '' : '?') 
+            const keyPart = formatAsObjectKey(prop) + (isRequired ? '' : '?') + ':'
             if (maxKeyPartLength < keyPart.length) {
               maxKeyPartLength = keyPart.length;
             }
