@@ -1,14 +1,6 @@
-import { isArray } from "util";
-
-async function readAllStdin(): Promise<string> {
-  process.stdin.setEncoding('utf-8');
-  
-  let data = '';
-  for await (const chunk of process.stdin) {
-    data += chunk;
-  }
-  return data;
-}
+import { readAllStdin } from "./io";
+import { parseJSON } from "./parse";
+import { renderTSTrie } from "./render";
 
 async function main() {
 
@@ -18,7 +10,10 @@ async function main() {
     throw new Error('Input is not an array');
   }
 
-  console.log(json);
+  const parsed = parseJSON(json);
+  console.log(input);
+  console.log("---");
+  console.log(renderTSTrie(parsed));
 
 }
 

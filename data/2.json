@@ -1,0 +1,65 @@
+[
+	{
+		"id": 1,
+		"name": "Alice",
+		"age": 30,
+		"active": true,
+		"address": {
+			"street": "123 Maple Street",
+			"city": "Springfield",
+			"zip": "12345"
+		},
+		"tags": [
+			"admin",
+			"user",
+			100
+		]
+	},
+	{
+		"id": "2",
+		"name": "Bob",
+		"active": false,
+		"address": {
+			"street": "456 Oak Avenue",
+			"city": "Shelbyville"
+		},
+		"email": "bob@example.com"
+	},
+	{
+		"id": 3,
+		"name": "Charlie",
+		"age": "35",
+		"active": true,
+		"address": {
+			"street": "789 Pine Road",
+			"city": "Ogdenville",
+			"zip": "67890"
+		},
+		"metadata": {
+			"lastLogin": "2025-01-15T10:00:00Z"
+		}
+	},
+	{
+		"id": 4,
+		"name": "Dana",
+		"age": 28,
+		"active": null,
+		"address": {
+			"street": "321 Birch Blvd",
+			"city": "Capital City"
+		},
+		"tags": []
+	},
+	{
+		"id": 5,
+		"name": "Eve",
+		"age": 22,
+		"active": true,
+		"address": null,
+		"email": "eve@example.com",
+		"tags": [
+			"guest",
+			null
+		]
+	}
+]
