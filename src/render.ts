@@ -2,6 +2,14 @@ import { RenderOptions } from "./options";
 import { JSONFieldTypeKeys, TSTrieNode, TSTrieRootNode } from "./types";
 import { formatAsObjectKey } from "./utils";
 
+function makeIndent(indentLevel: number, options: RenderOptions): string {
+  if (options.tabForIndent) {
+    return '\t'.repeat(indentLevel);
+  } else {
+    return ' '.repeat((indentLevel) * (options.spacesForTab || 4));
+  }
+}
+
 function renderTSTrieNode(
   node: TSTrieNode,
   options: RenderOptions,
@@ -10,7 +18,7 @@ function renderTSTrieNode(
   const candidates = node.candidates;
   const types: string[] = [];
 
-  const indentSpaces0 = ' '.repeat((indentLevel) * (options.spacesForTab || 4));
+  const indentSpaces0 = makeIndent(indentLevel, options);
   for (const key of JSONFieldTypeKeys) {
     const candidate = candidates[key];
     if (!candidate) continue;
@@ -42,7 +50,7 @@ function renderTSTrieNode(
           keyPart: string;
           typePart: string;
         }[] = [];
-        const indentSpaces1 = ' '.repeat((indentLevel + 1) * (options.spacesForTab || 4));
+        const indentSpaces1 = makeIndent(indentLevel + 1, options);
 
         let maxKeyPartLength = 0;
         for (const prop of Object.keys(candidate.objectChildren).sort()) {

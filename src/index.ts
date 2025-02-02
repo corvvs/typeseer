@@ -8,7 +8,8 @@ async function main() {
   const program = new Command();
   program
     .option('-s, --spaces <spacedForTab>', 'number of spaces for tab', '4')
-    .option('-t, --type-name <typeName>', 'type name', 'JSON')
+    .option('-t, --tab-for-indent', 'use tab for indent', false)
+    .option('-n, --type-name <typeName>', 'type name', 'JSON')
     .argument('[files...]', 'File paths to read');
   program.parse();
   
@@ -18,6 +19,7 @@ async function main() {
 
   const renderOption: RenderOptions = {
     typeName: program.opts().typeName,
+    tabForIndent: program.opts().tabForIndent,
     spacesForTab: parseInt(program.opts().spaces, 10),
   };
   const output = renderTSTrie(parsed, renderOption);
