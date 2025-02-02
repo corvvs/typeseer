@@ -3,4 +3,3 @@ export type RenderOptions = {
   tabForIndent?: boolean;
   spacesForTab?: number;
 };
-
