@@ -1,4 +1,5 @@
 import { JSONFieldTypeKeys, TSTrieNode, TSTrieRootNode } from "./types";
+import { formatAsObjectKey } from "./utils";
 
 const spacesForTab = 4;
 
@@ -36,10 +37,14 @@ function renderTSTrieNode(
       case 'object': {
         const baseCount = candidate.count;
         if (candidate.objectChildren) {
-          const props: string[] = [];
+          const props: {
+            keyPart: string;
+            typePart: string;
+          }[] = [];
           const indentSpaces1 = ' '.repeat((indentLevel + 1) * spacesForTab);
 
-          for (const prop in candidate.objectChildren) {
+          let maxKeyPartLength = 0;
+          for (const prop of Object.keys(candidate.objectChildren).sort()) {
             // NOTE: 厳密なフィールド所持判定
             if (Object.prototype.hasOwnProperty.call(candidate.objectChildren, prop)) {
               const childNode = candidate.objectChildren[prop]!;
@@ -47,11 +52,20 @@ function renderTSTrieNode(
               const childCount = childNode.count;
               // NOTE: < の場合は何かがおかしい
               const isRequired = baseCount <= childCount;
-              props.push(`${indentSpaces1}${prop}${isRequired ? '' : '?'}: ${childType};\n`);
+              const keyPart = formatAsObjectKey(prop) + ':' + (isRequired ? '' : '?') 
+              if (maxKeyPartLength < keyPart.length) {
+                maxKeyPartLength = keyPart.length;
+              }
+              props.push({
+                keyPart,
+                typePart: childType,
+              });
             }
           }
 
-          types.push(`{\n${props.join("")}${indentSpaces0}}`);
+          types.push(`{\n${props.map(p => {
+            return `${indentSpaces1}${p.keyPart.padEnd(maxKeyPartLength)} ${p.typePart};\n`;
+          }).join("")}${indentSpaces0}}`);
         } else {
           types.push('{}');
         }
@@ -60,8 +74,8 @@ function renderTSTrieNode(
     }
   }
 
-  // NOTE: types.length === 0 の時は何かがおかしい
-  return types.length > 0 ? types.join(' | ') : 'never';
+  // NOTE: types.length === 0 はたとえばすべてのデータが空配列だった場合に起きる
+  return types.length > 0 ? types.join(' | ') : 'any';
 }
 
 
