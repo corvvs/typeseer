@@ -5,9 +5,10 @@ import { renderTSTrie } from "./render";
 async function main() {
 
   const input = await readAllStdin();
-  const json = JSON.parse(input);
+  let json = JSON.parse(input);
   if (!Array.isArray(json)) {
-    throw new Error('Input is not an array');
+    console.warn("Input is not an array, wrapping it in an array");
+    json = [json];
   }
 
   const parsed = parseJSON(json);
