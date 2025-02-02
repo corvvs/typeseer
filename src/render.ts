@@ -25,7 +25,7 @@ function renderTSTrieNode(
 
       case 'array': {
         if (candidate.arrayChildren) {
-          const elementType = renderTSTrieNode(candidate.arrayChildren);
+          const elementType = renderTSTrieNode(candidate.arrayChildren, indentLevel);
           types.push(`Array<${elementType}>`);
         } else {
           types.push('any[]');
