@@ -2,18 +2,26 @@ import { Command } from "commander";
 import { parseJSON } from "./parse";
 import { renderTSTrie } from "./render";
 import { readJSONsFromFiles, readJSONsFromSTDIN } from "./io";
+import { RenderOptions } from "./options";
 
 async function main() {
   const program = new Command();
   program
-    .argument('[files...]', 'File paths to read')
-    .action(async (files: string[]) => {
-      const jsons = await (files.length > 0 ? readJSONsFromFiles(files) : readJSONsFromSTDIN());
-      const parsed = parseJSON(jsons);
-      console.log(renderTSTrie(parsed));
-    });
+    .option('-s, --spaces <spacedForTab>', 'number of spaces for tab', '4')
+    .option('-t, --type-name <typeName>', 'type name', 'JSON')
+    .argument('[files...]', 'File paths to read');
+  program.parse();
+  
+  const files = program.args;
+  const jsons = await (files.length > 0 ? readJSONsFromFiles(files) : readJSONsFromSTDIN());
+  const parsed = parseJSON(jsons);
 
-  await program.parseAsync(process.argv);
+  const renderOption: RenderOptions = {
+    typeName: program.opts().typeName,
+    spacesForTab: parseInt(program.opts().spaces, 10),
+  };
+  const output = renderTSTrie(parsed, renderOption);
+  console.log(output);
 }
 
 main().catch((err) => {

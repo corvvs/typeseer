@@ -1,16 +1,16 @@
+import { RenderOptions } from "./options";
 import { JSONFieldTypeKeys, TSTrieNode, TSTrieRootNode } from "./types";
 import { formatAsObjectKey } from "./utils";
 
-const spacesForTab = 4;
-
 function renderTSTrieNode(
   node: TSTrieNode,
+  options: RenderOptions,
   indentLevel = 0,
 ): string {
   const candidates = node.candidates;
   const types: string[] = [];
 
-  const indentSpaces0 = ' '.repeat((indentLevel) * spacesForTab);
+  const indentSpaces0 = ' '.repeat((indentLevel) * (options.spacesForTab || 4));
   for (const key of JSONFieldTypeKeys) {
     const candidate = candidates[key];
     if (!candidate) continue;
@@ -28,7 +28,7 @@ function renderTSTrieNode(
         if (!candidate.arrayChildren) {
           throw new Error('Array candidate should have arrayChildren');
         }
-        const elementType = renderTSTrieNode(candidate.arrayChildren, indentLevel);
+        const elementType = renderTSTrieNode(candidate.arrayChildren, options, indentLevel);
         types.push(`Array<${elementType}>`);
         break;
       }
@@ -42,14 +42,14 @@ function renderTSTrieNode(
           keyPart: string;
           typePart: string;
         }[] = [];
-        const indentSpaces1 = ' '.repeat((indentLevel + 1) * spacesForTab);
+        const indentSpaces1 = ' '.repeat((indentLevel + 1) * (options.spacesForTab || 4));
 
         let maxKeyPartLength = 0;
         for (const prop of Object.keys(candidate.objectChildren).sort()) {
           // NOTE: 厳密なフィールド所持判定
           if (Object.prototype.hasOwnProperty.call(candidate.objectChildren, prop)) {
             const childNode = candidate.objectChildren[prop]!;
-            const childType = renderTSTrieNode(childNode, indentLevel + 1);
+            const childType = renderTSTrieNode(childNode, options, indentLevel + 1);
             const childCount = childNode.count;
             // NOTE: < の場合は何かがおかしい
             const isRequired = baseCount <= childCount;
@@ -77,7 +77,9 @@ function renderTSTrieNode(
 }
 
 
-export function renderTSTrie(root: TSTrieRootNode, typeName = "GeneratedType"): string {
-  const typeBody = renderTSTrieNode(root);
-  return `type ${typeName} = ${typeBody};`;
+export function renderTSTrie(root: TSTrieRootNode, options: RenderOptions = {
+  typeName: 'JSONType',
+}): string {
+  const typeBody = renderTSTrieNode(root, options);
+  return `type ${options.typeName} = ${typeBody};`;
 }
