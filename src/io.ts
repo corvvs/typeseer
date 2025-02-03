@@ -1,9 +1,9 @@
-import * as fs from 'fs';
+import * as fs from "fs";
 
 async function readAllStdin(): Promise<string> {
-  process.stdin.setEncoding('utf-8');
-  
-  let data = '';
+  process.stdin.setEncoding("utf-8");
+
+  let data = "";
   for await (const chunk of process.stdin) {
     data += chunk;
   }
@@ -14,10 +14,12 @@ export async function readJSONsFromFiles(files: string[]) {
   const jsons: any[] = [];
   for (const filePath of files) {
     try {
-      const content = fs.readFileSync(filePath, 'utf-8');
+      const content = fs.readFileSync(filePath, "utf-8");
       let json = JSON.parse(content);
       if (!Array.isArray(json)) {
-        console.warn(`Warning: File ${filePath} is not an array, wrapping it in an array`);
+        console.warn(
+          `Warning: File ${filePath} is not an array, wrapping it in an array`
+        );
         json = [json];
       }
       jsons.push(...json);

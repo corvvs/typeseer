@@ -8,7 +8,7 @@ export function parseJSON(jsons: JSONFieldType[]): TSTrieRootNode {
   };
 
   for (const json of jsons) {
-      subparse(root, json);
+    subparse(root, json);
   }
 
   return root;
@@ -25,36 +25,36 @@ function subparse(currentNode: TSTrieNode, json: JSONFieldType) {
       subparse(currentNode.candidates.array.arrayChildren!, item);
     }
   } else if (json === null) {
-    currentNode.candidates.null ||= newTrieTypeNode(); 
+    currentNode.candidates.null ||= newTrieTypeNode();
     currentNode.candidates.null.count++;
-  } else if (fieldType === 'object') {
+  } else if (fieldType === "object") {
     currentNode.candidates.object ||= newTrieTypeNode();
     currentNode.candidates.object.count++;
-    currentNode.candidates.object.objectChildren = currentNode.candidates.object.objectChildren || {};
-    for (const [key, value] of Object.entries(json as { [key in string]: JSONFieldType })) {
+    currentNode.candidates.object.objectChildren =
+      currentNode.candidates.object.objectChildren || {};
+    for (const [key, value] of Object.entries(
+      json as { [key in string]: JSONFieldType }
+    )) {
       currentNode.candidates.object.objectChildren[key] ||= newTrieSubNode(key);
       currentNode.candidates.object.objectChildren[key].count++;
       subparse(currentNode.candidates.object.objectChildren![key], value);
     }
   } else {
     switch (fieldType) {
-      case 'string':
-        currentNode.candidates.string ||= newTrieTypeNode(); 
+      case "string":
+        currentNode.candidates.string ||= newTrieTypeNode();
         currentNode.candidates.string.count++;
         break;
-      case 'number':
-        currentNode.candidates.number ||= newTrieTypeNode(); 
+      case "number":
+        currentNode.candidates.number ||= newTrieTypeNode();
         currentNode.candidates.number.count++;
         break;
-      case 'boolean':
-        currentNode.candidates.boolean ||= newTrieTypeNode(); 
+      case "boolean":
+        currentNode.candidates.boolean ||= newTrieTypeNode();
         currentNode.candidates.boolean.count++;
         break;
       default:
-        throw new Error('Unexpected JSON type');
+        throw new Error("Unexpected JSON type");
     }
   }
-
 }
-
-

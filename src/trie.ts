@@ -1,7 +1,7 @@
 import { TSTrieSubNode, TSTrieTypeNode } from "./types";
 
 export function newTrieTypeNode(): TSTrieTypeNode {
-  const r:TSTrieTypeNode = {
+  const r: TSTrieTypeNode = {
     count: 0,
   };
   return r;
