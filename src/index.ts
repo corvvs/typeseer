@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { parseJSON } from "./parse";
 import { renderTSTrie } from "./render";
 import { readJSONsFromFiles, readJSONsFromSTDIN } from "./io";
-import { RenderOptions } from "./options";
+import { ParseOptions, RenderOptions } from "./options";
 
 async function main() {
   const program = new Command();
@@ -17,7 +17,12 @@ async function main() {
   const jsons = await (files.length > 0
     ? readJSONsFromFiles(files)
     : readJSONsFromSTDIN());
-  const parsed = parseJSON(jsons);
+  const parseOption: ParseOptions = {
+    unionBy: {
+      protoPayload: "methodName",
+    },
+  };
+  const parsed = parseJSON(jsons, parseOption);
 
   const renderOption: RenderOptions = {
     typeName: program.opts().typeName,

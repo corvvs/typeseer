@@ -1,60 +1,122 @@
+import { ParseOptions } from "./options";
 import { newTrieSubNode, newTrieTypeNode } from "./trie";
-import { JSONFieldType, TSTrieNode, TSTrieRootNode } from "./types";
+import {
+  JSONFieldType,
+  TSTrieNode,
+  TSTrieRootNode,
+  TSTrieTypeNode,
+} from "./types";
+import { getByKeyPath, makeKeyPath } from "./utils";
 
-export function parseJSON(jsons: JSONFieldType[]): TSTrieRootNode {
+export function parseJSON(
+  jsons: JSONFieldType[],
+  options: ParseOptions
+): TSTrieRootNode {
   const root: TSTrieRootNode = {
     count: 1,
     candidates: {},
   };
 
   for (const json of jsons) {
-    subparse(root, json);
+    subparse("", root, json, options);
   }
 
   return root;
 }
 
-function subparse(currentNode: TSTrieNode, json: JSONFieldType) {
+function subparse(
+  keyPath: string,
+  currentNode: TSTrieNode,
+  json: JSONFieldType,
+  options: ParseOptions
+) {
   const fieldType = typeof json;
-  if (Array.isArray(json)) {
-    currentNode.candidates.array ||= newTrieTypeNode();
-    currentNode.candidates.array.count++;
-    currentNode.candidates.array.arrayChildren ||= newTrieSubNode("[]");
-    currentNode.candidates.array.arrayChildren.count++;
-    for (const item of json) {
-      subparse(currentNode.candidates.array.arrayChildren!, item);
+  currentNode.classification = (options.unionBy ?? {})[keyPath];
+
+  const cnd = currentNode.candidates;
+  if (typeof currentNode.classification !== "undefined") {
+    // カスタム分類を行う
+    if (Array.isArray(json) || typeof json !== "object") {
+      console.warn("Invalid classification target", typeof json);
+      return;
     }
-  } else if (json === null) {
-    currentNode.candidates.null ||= newTrieTypeNode();
-    currentNode.candidates.null.count++;
-  } else if (fieldType === "object") {
-    currentNode.candidates.object ||= newTrieTypeNode();
-    currentNode.candidates.object.count++;
-    currentNode.candidates.object.objectChildren =
-      currentNode.candidates.object.objectChildren || {};
-    for (const [key, value] of Object.entries(
-      json as { [key in string]: JSONFieldType }
-    )) {
-      currentNode.candidates.object.objectChildren[key] ||= newTrieSubNode(key);
-      currentNode.candidates.object.objectChildren[key].count++;
-      subparse(currentNode.candidates.object.objectChildren![key], value);
+
+    let classValue: string;
+    if (typeof currentNode.classification === "string") {
+      classValue = getByKeyPath(json, currentNode.classification);
+      if (typeof classValue !== "string") {
+        console.warn("Invalid classification value", classValue);
+        return;
+      }
+    } else {
+      classValue = currentNode.classification(json);
+      if (typeof classValue !== "string") {
+        console.warn("Invalid classification value", classValue);
+        return;
+      }
     }
+    cnd[classValue] ||= newTrieTypeNode();
+    subparseObject(keyPath, cnd[classValue], json, options);
   } else {
-    switch (fieldType) {
-      case "string":
-        currentNode.candidates.string ||= newTrieTypeNode();
-        currentNode.candidates.string.count++;
-        break;
-      case "number":
-        currentNode.candidates.number ||= newTrieTypeNode();
-        currentNode.candidates.number.count++;
-        break;
-      case "boolean":
-        currentNode.candidates.boolean ||= newTrieTypeNode();
-        currentNode.candidates.boolean.count++;
-        break;
-      default:
-        throw new Error("Unexpected JSON type");
+    // デフォルトの分類を行う
+    if (Array.isArray(json)) {
+      cnd.array ||= newTrieTypeNode();
+      cnd.array.count++;
+      cnd.array.arrayChildren ||= newTrieSubNode("[]");
+      cnd.array.arrayChildren.count++;
+      for (const item of json) {
+        subparse(
+          keyPath ? keyPath + "[]" : ".[]",
+          cnd.array.arrayChildren!,
+          item,
+          options
+        );
+      }
+    } else if (json === null) {
+      cnd.null ||= newTrieTypeNode();
+      cnd.null.count++;
+    } else if (fieldType === "object") {
+      cnd.object ||= newTrieTypeNode();
+      subparseObject(keyPath, cnd.object, json, options);
+    } else {
+      switch (fieldType) {
+        case "string":
+          cnd.string ||= newTrieTypeNode();
+          cnd.string.count++;
+          break;
+        case "number":
+          cnd.number ||= newTrieTypeNode();
+          cnd.number.count++;
+          break;
+        case "boolean":
+          cnd.boolean ||= newTrieTypeNode();
+          cnd.boolean.count++;
+          break;
+        default:
+          throw new Error("Unexpected JSON type");
+      }
     }
+  }
+}
+
+function subparseObject(
+  keyPath: string,
+  typeNode: TSTrieTypeNode,
+  json: JSONFieldType,
+  options: ParseOptions
+) {
+  typeNode.count++;
+  typeNode.objectChildren ||= {};
+  for (const [key, value] of Object.entries(
+    json as { [key in string]: JSONFieldType }
+  )) {
+    typeNode.objectChildren[key] ||= newTrieSubNode(key);
+    typeNode.objectChildren[key].count++;
+    subparse(
+      makeKeyPath(keyPath, key),
+      typeNode.objectChildren![key],
+      value,
+      options
+    );
   }
 }

@@ -1,3 +1,5 @@
+import { Classification } from "./options";
+
 export type JSONFieldPrimitiveType = string | number | boolean | null;
 
 export type JSONFieldType =
@@ -28,13 +30,12 @@ export type TSTrieTypeNode = {
 
 export type TSTrieRootNode = {
   count: number;
-  candidates: { [key in JSONFieldTypeKey]?: TSTrieTypeNode };
+  classification?: Classification;
+  candidates: { [key in string]: TSTrieTypeNode };
 };
 
-export type TSTrieSubNode = {
+export type TSTrieSubNode = TSTrieRootNode & {
   key?: string;
-  count: number;
-  candidates: { [key in JSONFieldTypeKey]?: TSTrieTypeNode };
 };
 
 export type TSTrieNode = TSTrieRootNode | TSTrieSubNode;

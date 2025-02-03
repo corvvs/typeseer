@@ -1,6 +1,11 @@
 import { RenderOptions } from "./options";
-import { JSONFieldTypeKeys, TSTrieNode, TSTrieRootNode } from "./types";
-import { formatAsObjectKey } from "./utils";
+import {
+  JSONFieldTypeKeys,
+  TSTrieNode,
+  TSTrieRootNode,
+  TSTrieTypeNode,
+} from "./types";
+import { formatAsObjectKey, makeKeyPath } from "./utils";
 
 function makeIndent(indentLevel: number, options: RenderOptions): string {
   if (options.tabForIndent) {
@@ -42,106 +47,113 @@ function renderTSTrieNode(
   let hasObject = false;
 
   const indentSpaces0 = makeIndent(indentLevel, options);
-  for (const key of JSONFieldTypeKeys) {
-    const candidate = candidates[key];
-    if (!candidate) continue;
+  function renderObject(candidate: TSTrieTypeNode) {
+    const baseCount = candidate.count;
+    if (!candidate.objectChildren) {
+      throw new Error("Object candidate should have objectChildren");
+    }
+    const props: {
+      keyPart: string;
+      typePart: string;
+    }[] = [];
+    const indentSpaces1 = makeIndent(indentLevel + 1, options);
 
-    switch (key) {
-      case "string":
-      case "number":
-      case "boolean":
-      case "null": {
-        types.push(key);
-        break;
+    let objectLines = "";
+    let maxKeyPartLength = 0;
+    let keys = 0;
+
+    for (const prop of Object.keys(candidate.objectChildren).sort()) {
+      // NOTE: 厳密なフィールド所持判定
+      if (
+        Object.prototype.hasOwnProperty.call(candidate.objectChildren, prop)
+      ) {
+        const childNode = candidate.objectChildren[prop]!;
+        const childType = renderTSTrieNode(childNode, options, indentLevel + 1);
+        if (childType.hasObject) {
+          objectLines += flushObjectLines(
+            props,
+            indentSpaces1,
+            maxKeyPartLength
+          );
+          props.splice(0, props.length);
+          maxKeyPartLength = 0;
+        }
+
+        const childCount = childNode.count;
+        // NOTE: < の場合は何かがおかしい
+        const isRequired = baseCount <= childCount;
+        const keyPart = formatAsObjectKey(prop) + (isRequired ? "" : "?") + ":";
+        if (maxKeyPartLength < keyPart.length) {
+          maxKeyPartLength = keyPart.length;
+        }
+        props.push({
+          keyPart,
+          typePart: childType.body,
+        });
+        keys += 1;
+        if (childType.hasObject) {
+          objectLines += flushObjectLines(
+            props,
+            indentSpaces1,
+            maxKeyPartLength
+          );
+          props.splice(0, props.length);
+          maxKeyPartLength = 0;
+        }
       }
+    }
 
-      case "array": {
-        if (!candidate.arrayChildren) {
-          throw new Error("Array candidate should have arrayChildren");
-        }
-        const elementType = renderTSTrieNode(
-          candidate.arrayChildren,
-          options,
-          indentLevel
-        );
-        types.push(`Array<${elementType.body}>`);
-        if (elementType.hasObject) {
-          hasObject = true;
-        }
-        break;
-      }
+    if (keys === 0) {
+      types.push("{}");
+      return;
+    }
+    hasObject = true;
 
-      case "object": {
-        const baseCount = candidate.count;
-        if (!candidate.objectChildren) {
-          throw new Error("Object candidate should have objectChildren");
-        }
-        const props: {
-          keyPart: string;
-          typePart: string;
-        }[] = [];
-        const indentSpaces1 = makeIndent(indentLevel + 1, options);
+    objectLines += flushObjectLines(props, indentSpaces1, maxKeyPartLength);
 
-        let objectLines = "";
-        let maxKeyPartLength = 0;
-        let keys = 0;
+    types.push(`{\n${objectLines}${indentSpaces0}}`);
+  }
 
-        for (const prop of Object.keys(candidate.objectChildren).sort()) {
-          // NOTE: 厳密なフィールド所持判定
-          if (
-            Object.prototype.hasOwnProperty.call(candidate.objectChildren, prop)
-          ) {
-            const childNode = candidate.objectChildren[prop]!;
-            const childType = renderTSTrieNode(
-              childNode,
-              options,
-              indentLevel + 1
-            );
-            if (childType.hasObject) {
-              objectLines += flushObjectLines(
-                props,
-                indentSpaces1,
-                maxKeyPartLength
-              );
-              props.splice(0, props.length);
-              maxKeyPartLength = 0;
-            }
+  if (typeof node.classification !== "undefined") {
+    const keys = Object.keys(candidates).sort();
+    for (const key of keys) {
+      const candidate = candidates[key];
+      if (!candidate) continue;
+      renderObject(candidate);
+    }
+  } else {
+    for (const key of JSONFieldTypeKeys) {
+      const candidate = candidates[key];
+      if (!candidate) continue;
 
-            const childCount = childNode.count;
-            // NOTE: < の場合は何かがおかしい
-            const isRequired = baseCount <= childCount;
-            const keyPart =
-              formatAsObjectKey(prop) + (isRequired ? "" : "?") + ":";
-            if (maxKeyPartLength < keyPart.length) {
-              maxKeyPartLength = keyPart.length;
-            }
-            props.push({
-              keyPart,
-              typePart: childType.body,
-            });
-            keys += 1;
-            if (childType.hasObject) {
-              objectLines += flushObjectLines(
-                props,
-                indentSpaces1,
-                maxKeyPartLength
-              );
-              props.splice(0, props.length);
-              maxKeyPartLength = 0;
-            }
-          }
-        }
-
-        if (keys === 0) {
-          types.push("{}");
+      switch (key) {
+        case "string":
+        case "number":
+        case "boolean":
+        case "null": {
+          types.push(key);
           break;
         }
-        hasObject = true;
 
-        objectLines += flushObjectLines(props, indentSpaces1, maxKeyPartLength);
+        case "array": {
+          if (!candidate.arrayChildren) {
+            throw new Error("Array candidate should have arrayChildren");
+          }
+          const elementType = renderTSTrieNode(
+            candidate.arrayChildren,
+            options,
+            indentLevel
+          );
+          types.push(`Array<${elementType.body}>`);
+          if (elementType.hasObject) {
+            hasObject = true;
+          }
+          break;
+        }
 
-        types.push(`{\n${objectLines}${indentSpaces0}}`);
-        break;
+        case "object":
+          renderObject(candidate);
+          break;
       }
     }
   }
