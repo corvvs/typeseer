@@ -31,6 +31,7 @@ export type TSTrieTypeNode = {
 export type TSTrieStringTypeNode = TSTrieTypeNode & {
   isEnum?: boolean;
   stats: { [key in string]: number };
+  longCount: number;
 };
 
 export type TSTrieRootNode = {

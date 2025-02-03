@@ -10,6 +10,7 @@ export function newTrieTypeNode(): TSTrieTypeNode {
 export function newTrieStringTypeNode(): TSTrieStringTypeNode {
   const r: TSTrieStringTypeNode = {
     count: 0,
+    longCount: 0,
     stats: {},
   };
   return r;

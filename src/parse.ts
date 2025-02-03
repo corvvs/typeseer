@@ -85,11 +85,18 @@ function subparse(
           cnd.string ||= newTrieStringTypeNode();
           const typeNode = cnd.string as TSTrieStringTypeNode;
           typeNode.count++;
+          const value = json as string;
           if (options.enumKeys && options.enumKeys[keyPath] === true) {
-            const value = json as string;
             typeNode.stats[value] ||= 0;
             typeNode.stats[value]++;
             typeNode.isEnum = true;
+          } else {
+            if (value.length > 24) {
+              typeNode.longCount++;
+            } else {
+              typeNode.stats[value] ||= 0;
+              typeNode.stats[value]++;
+            }
           }
           break;
         case "number":
