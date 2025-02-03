@@ -1,5 +1,6 @@
 export type ParseOptions = {
   unionBy?: UnionBy;
+  enumKeys?: { [keyPath in string]: boolean };
 };
 
 export type RenderOptions = {

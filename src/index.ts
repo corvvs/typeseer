@@ -13,6 +13,7 @@ async function main() {
     .argument("[files...]", "File paths to read");
   program.parse();
 
+  // parse
   const files = program.args;
   const jsons = await (files.length > 0
     ? readJSONsFromFiles(files)
@@ -21,9 +22,22 @@ async function main() {
     unionBy: {
       protoPayload: "methodName",
     },
+    enumKeys: {
+      severity: true,
+    },
   };
+  if (parseOption.unionBy) {
+    for (const keyPath in parseOption.unionBy) {
+      const classification = parseOption.unionBy[keyPath];
+      if (typeof classification === "string") {
+        parseOption.enumKeys ||= {};
+        parseOption.enumKeys[keyPath + "." + classification] = true;
+      }
+    }
+  }
   const parsed = parseJSON(jsons, parseOption);
 
+  // render
   const renderOption: RenderOptions = {
     typeName: program.opts().typeName,
     tabForIndent: program.opts().tabForIndent,

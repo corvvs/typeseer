@@ -28,6 +28,11 @@ export type TSTrieTypeNode = {
   };
 };
 
+export type TSTrieStringTypeNode = TSTrieTypeNode & {
+  isEnum?: boolean;
+  stats: { [key in string]: number };
+};
+
 export type TSTrieRootNode = {
   count: number;
   classification?: Classification;
@@ -39,3 +44,9 @@ export type TSTrieSubNode = TSTrieRootNode & {
 };
 
 export type TSTrieNode = TSTrieRootNode | TSTrieSubNode;
+
+export function isTrieStringTypeNode(
+  typeNode: TSTrieTypeNode
+): typeNode is TSTrieStringTypeNode {
+  return "stats" in typeNode;
+}

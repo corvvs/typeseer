@@ -1,9 +1,10 @@
 import { ParseOptions } from "./options";
-import { newTrieSubNode, newTrieTypeNode } from "./trie";
+import { newTrieStringTypeNode, newTrieSubNode, newTrieTypeNode } from "./trie";
 import {
   JSONFieldType,
   TSTrieNode,
   TSTrieRootNode,
+  TSTrieStringTypeNode,
   TSTrieTypeNode,
 } from "./types";
 import { getByKeyPath, makeKeyPath } from "./utils";
@@ -81,8 +82,15 @@ function subparse(
     } else {
       switch (fieldType) {
         case "string":
-          cnd.string ||= newTrieTypeNode();
-          cnd.string.count++;
+          cnd.string ||= newTrieStringTypeNode();
+          const typeNode = cnd.string as TSTrieStringTypeNode;
+          typeNode.count++;
+          if (options.enumKeys && options.enumKeys[keyPath] === true) {
+            const value = json as string;
+            typeNode.stats[value] ||= 0;
+            typeNode.stats[value]++;
+            typeNode.isEnum = true;
+          }
           break;
         case "number":
           cnd.number ||= newTrieTypeNode();

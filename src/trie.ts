@@ -1,8 +1,16 @@
-import { TSTrieSubNode, TSTrieTypeNode } from "./types";
+import { TSTrieStringTypeNode, TSTrieSubNode, TSTrieTypeNode } from "./types";
 
 export function newTrieTypeNode(): TSTrieTypeNode {
   const r: TSTrieTypeNode = {
     count: 0,
+  };
+  return r;
+}
+
+export function newTrieStringTypeNode(): TSTrieStringTypeNode {
+  const r: TSTrieStringTypeNode = {
+    count: 0,
+    stats: {},
   };
   return r;
 }

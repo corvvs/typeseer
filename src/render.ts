@@ -1,5 +1,6 @@
 import { RenderOptions } from "./options";
 import {
+  isTrieStringTypeNode,
   JSONFieldTypeKeys,
   TSTrieNode,
   TSTrieRootNode,
@@ -19,15 +20,17 @@ function flushObjectLines(
   props: {
     keyPart: string;
     typePart: string;
+    commentPart?: string;
   }[],
   indentSpaces: string,
   maxKeyPartLength: number
 ): string {
   let objectLines = "";
   for (const p of props) {
+    const commentPart = p.commentPart ? ` // ${p.commentPart}` : "";
     objectLines += `${indentSpaces}${p.keyPart.padEnd(maxKeyPartLength)} ${
       p.typePart
-    };\n`;
+    };${commentPart}\n`;
   }
   return objectLines;
 }
@@ -35,9 +38,11 @@ function flushObjectLines(
 type RenderResult = {
   body: string;
   hasObject: boolean;
+  comment: string;
 };
 
 function renderTSTrieNode(
+  keyPath: string,
   node: TSTrieNode,
   options: RenderOptions,
   indentLevel = 0
@@ -45,9 +50,11 @@ function renderTSTrieNode(
   const candidates = node.candidates;
   const types: string[] = [];
   let hasObject = false;
+  let comment = "";
 
   const indentSpaces0 = makeIndent(indentLevel, options);
-  function renderObject(candidate: TSTrieTypeNode) {
+
+  function renderObject(candidate: TSTrieTypeNode, classKey = "") {
     const baseCount = candidate.count;
     if (!candidate.objectChildren) {
       throw new Error("Object candidate should have objectChildren");
@@ -55,6 +62,7 @@ function renderTSTrieNode(
     const props: {
       keyPart: string;
       typePart: string;
+      commentPart?: string;
     }[] = [];
     const indentSpaces1 = makeIndent(indentLevel + 1, options);
 
@@ -68,7 +76,12 @@ function renderTSTrieNode(
         Object.prototype.hasOwnProperty.call(candidate.objectChildren, prop)
       ) {
         const childNode = candidate.objectChildren[prop]!;
-        const childType = renderTSTrieNode(childNode, options, indentLevel + 1);
+        const childType = renderTSTrieNode(
+          keyPath ? keyPath + "[]" : ".[]",
+          childNode,
+          options,
+          indentLevel + 1
+        );
         if (childType.hasObject) {
           objectLines += flushObjectLines(
             props,
@@ -89,6 +102,7 @@ function renderTSTrieNode(
         props.push({
           keyPart,
           typePart: childType.body,
+          commentPart: childType.comment,
         });
         keys += 1;
         if (childType.hasObject) {
@@ -110,8 +124,8 @@ function renderTSTrieNode(
     hasObject = true;
 
     objectLines += flushObjectLines(props, indentSpaces1, maxKeyPartLength);
-
-    types.push(`{\n${objectLines}${indentSpaces0}}`);
+    const classComment = classKey ? ` // "${classKey}"` : "";
+    types.push(`{${classComment}\n${objectLines}${indentSpaces0}}`);
   }
 
   if (typeof node.classification !== "undefined") {
@@ -119,7 +133,7 @@ function renderTSTrieNode(
     for (const key of keys) {
       const candidate = candidates[key];
       if (!candidate) continue;
-      renderObject(candidate);
+      renderObject(candidate, key);
     }
   } else {
     for (const key of JSONFieldTypeKeys) {
@@ -128,6 +142,26 @@ function renderTSTrieNode(
 
       switch (key) {
         case "string":
+          // enumかも？
+          if (isTrieStringTypeNode(candidate)) {
+            if (candidate.isEnum) {
+              const keys = Object.keys(candidate.stats);
+              if (keys.length === 1) {
+                // サイズ1のenum = 定数
+                types.push(`"${keys[0]}"`);
+                break;
+              } else {
+                // enumかもしれない
+                console.warn("is it enum?", candidate.stats);
+                comment = Object.keys(candidate.stats)
+                  .sort()
+                  .map((key) => `"${key}"`)
+                  .join(" | ");
+              }
+            }
+          }
+          types.push(key);
+          break;
         case "number":
         case "boolean":
         case "null": {
@@ -140,6 +174,7 @@ function renderTSTrieNode(
             throw new Error("Array candidate should have arrayChildren");
           }
           const elementType = renderTSTrieNode(
+            makeKeyPath(keyPath, key),
             candidate.arrayChildren,
             options,
             indentLevel
@@ -163,6 +198,7 @@ function renderTSTrieNode(
   return {
     body: result,
     hasObject,
+    comment,
   };
 }
 
@@ -172,6 +208,6 @@ export function renderTSTrie(
     typeName: "JSONType",
   }
 ): string {
-  const result = renderTSTrieNode(root, options);
+  const result = renderTSTrieNode("", root, options);
   return `type ${options.typeName} = ${result.body};`;
 }
