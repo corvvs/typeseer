@@ -188,9 +188,6 @@ function renderTSTrieNode(
           // enumかも？
           if (isTrieStringTypeNode(candidate)) {
             const keys = Object.keys(candidate.stats);
-            const isEnum =
-              candidate.isEnum ||
-              (candidate.longCount === 0 && keys.length <= 10);
             if (candidate.isEnum) {
               if (keys.length === 1) {
                 // サイズ1のenum = 定数
@@ -207,6 +204,8 @@ function renderTSTrieNode(
                 .sort()
                 .map((key) => `"${key}"`)
                 .join(" | ");
+              types.push(key);
+            } else {
               types.push(key);
             }
           } else {
