@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { parseJSON } from "./parse";
 import { renderTSTrie } from "./render";
-import { readJSONsFromFiles, readJSONsFromSTDIN } from "./io";
+import { readJSONsFromFiles, readJSONsFromSTDIN, writeAllStdout } from "./io";
 import { ParseOptions, RenderOptions } from "./options";
 
 async function main() {
@@ -44,7 +44,8 @@ async function main() {
     spacesForTab: parseInt(program.opts().spaces, 10),
   };
   const output = renderTSTrie(parsed, renderOption);
-  console.log(output);
+  writeAllStdout(output);
+  writeAllStdout("\n");
 }
 
 main().catch((err) => {

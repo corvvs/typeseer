@@ -33,6 +33,7 @@ function subparse(
 ) {
   const fieldType = typeof json;
   currentNode.classification = (options.unionBy ?? {})[keyPath];
+  currentNode.isDictionary = (options.dictionaryLikeKeys ?? {})[keyPath];
 
   const cnd = currentNode.candidates;
   if (typeof currentNode.classification !== "undefined") {
@@ -57,28 +58,22 @@ function subparse(
       }
     }
     cnd[classValue] ||= newTrieTypeNode();
-    subparseObject(keyPath, cnd[classValue], json, options);
+    subparseStructuredObject(keyPath, cnd[classValue], json, options);
   } else {
     // デフォルトの分類を行う
     if (Array.isArray(json)) {
       cnd.array ||= newTrieTypeNode();
-      cnd.array.count++;
-      cnd.array.arrayChildren ||= newTrieSubNode("[]");
-      cnd.array.arrayChildren.count++;
-      for (const item of json) {
-        subparse(
-          keyPath ? keyPath + "[]" : ".[]",
-          cnd.array.arrayChildren!,
-          item,
-          options
-        );
-      }
+      subparseArray(keyPath, cnd.array, json, options);
     } else if (json === null) {
       cnd.null ||= newTrieTypeNode();
       cnd.null.count++;
     } else if (fieldType === "object") {
       cnd.object ||= newTrieTypeNode();
-      subparseObject(keyPath, cnd.object, json, options);
+      if (currentNode.isDictionary) {
+        subparseDictionaryLikeObject(keyPath, cnd.object, json, options);
+      } else {
+        subparseStructuredObject(keyPath, cnd.object, json, options);
+      }
     } else {
       switch (fieldType) {
         case "string":
@@ -114,22 +109,62 @@ function subparse(
   }
 }
 
-function subparseObject(
+function subparseArray(
+  keyPath: string,
+  typeNode: TSTrieTypeNode,
+  json: JSONFieldType[],
+  options: ParseOptions
+) {
+  typeNode.count++;
+  typeNode.arrayChildren ||= newTrieSubNode("[]");
+  typeNode.arrayChildren.count++;
+  for (const item of json) {
+    subparse(
+      keyPath ? keyPath + "[]" : ".[]",
+      typeNode.arrayChildren!,
+      item,
+      options
+    );
+  }
+}
+
+function subparseDictionaryLikeObject(
   keyPath: string,
   typeNode: TSTrieTypeNode,
   json: JSONFieldType,
   options: ParseOptions
 ) {
   typeNode.count++;
-  typeNode.objectChildren ||= {};
+  typeNode.dictionaryChildren ||= newTrieSubNode("[]");
+  typeNode.dictionaryChildren.count++;
+  for (const [, value] of Object.entries(
+    json as { [key in string]: JSONFieldType }
+  )) {
+    subparse(
+      keyPath ? keyPath + "[]" : ".[]",
+      typeNode.dictionaryChildren!,
+      value,
+      options
+    );
+  }
+}
+
+function subparseStructuredObject(
+  keyPath: string,
+  typeNode: TSTrieTypeNode,
+  json: JSONFieldType,
+  options: ParseOptions
+) {
+  typeNode.count++;
+  typeNode.structChildren ||= {};
   for (const [key, value] of Object.entries(
     json as { [key in string]: JSONFieldType }
   )) {
-    typeNode.objectChildren[key] ||= newTrieSubNode(key);
-    typeNode.objectChildren[key].count++;
+    typeNode.structChildren[key] ||= newTrieSubNode(key);
+    typeNode.structChildren[key].count++;
     subparse(
       makeKeyPath(keyPath, key),
-      typeNode.objectChildren![key],
+      typeNode.structChildren![key],
       value,
       options
     );

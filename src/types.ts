@@ -23,7 +23,8 @@ export type JSONFieldTypeKey = (typeof JSONFieldTypeKeys)[number];
 export type TSTrieTypeNode = {
   count: number;
   arrayChildren?: TSTrieNode;
-  objectChildren?: {
+  dictionaryChildren?: TSTrieNode;
+  structChildren?: {
     [path in string]?: TSTrieNode;
   };
 };
@@ -36,8 +37,9 @@ export type TSTrieStringTypeNode = TSTrieTypeNode & {
 
 export type TSTrieRootNode = {
   count: number;
-  classification?: Classification;
   candidates: { [key in string]: TSTrieTypeNode };
+  isDictionary?: boolean;
+  classification?: Classification;
 };
 
 export type TSTrieSubNode = TSTrieRootNode & {

@@ -10,6 +10,10 @@ async function readAllStdin(): Promise<string> {
   return data;
 }
 
+export async function writeAllStdout(data: string) {
+  process.stdout.write(data);
+}
+
 export async function readJSONsFromFiles(files: string[]) {
   const jsons: any[] = [];
   for (const filePath of files) {

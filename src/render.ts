@@ -39,6 +39,7 @@ type RenderResult = {
   body: string;
   hasObject: boolean;
   comment: string;
+  isMultiline?: boolean;
 };
 
 function renderTSTrieNode(
@@ -54,11 +55,44 @@ function renderTSTrieNode(
 
   const indentSpaces0 = makeIndent(indentLevel, options);
 
-  function renderObject(candidate: TSTrieTypeNode, classKey = "") {
-    const baseCount = candidate.count;
-    if (!candidate.objectChildren) {
+  function renderDictionaryObject(candidate: TSTrieTypeNode): RenderResult {
+    const elementType = renderTSTrieNode(
+      keyPath ? keyPath + "[]" : ".[]",
+      candidate.dictionaryChildren!,
+      options,
+      indentLevel
+    );
+    if (elementType.hasObject) {
+      hasObject = true;
+    }
+    if (elementType.isMultiline) {
+      // types.push(`{${classComment}\n${objectLines}${indentSpaces0}}`);
+      const indentSpaces1 = makeIndent(indentLevel + 1, options);
+      return {
+        body: `{\n${indentSpaces1}[key in string]: ${elementType.body}\n${indentSpaces0}}`,
+        hasObject,
+        comment,
+        isMultiline: true,
+      };
+    } else {
+      return {
+        body: `{ [key in string]: ${elementType.body} }`,
+        hasObject,
+        comment,
+        isMultiline: false,
+      };
+    }
+  }
+
+  function renderStructuredObject(
+    candidate: TSTrieTypeNode,
+    classKey = ""
+  ): RenderResult {
+    if (!candidate.structChildren) {
       throw new Error("Object candidate should have objectChildren");
     }
+
+    const baseCount = candidate.count;
     const props: {
       keyPart: string;
       typePart: string;
@@ -70,12 +104,12 @@ function renderTSTrieNode(
     let maxKeyPartLength = 0;
     let keys = 0;
 
-    for (const prop of Object.keys(candidate.objectChildren).sort()) {
+    for (const prop of Object.keys(candidate.structChildren).sort()) {
       // NOTE: 厳密なフィールド所持判定
       if (
-        Object.prototype.hasOwnProperty.call(candidate.objectChildren, prop)
+        Object.prototype.hasOwnProperty.call(candidate.structChildren, prop)
       ) {
-        const childNode = candidate.objectChildren[prop]!;
+        const childNode = candidate.structChildren[prop]!;
         const childType = renderTSTrieNode(
           keyPath ? keyPath + "[]" : ".[]",
           childNode,
@@ -118,14 +152,22 @@ function renderTSTrieNode(
     }
 
     if (keys === 0) {
-      types.push("{}");
-      return;
+      return {
+        body: "{}",
+        hasObject: false,
+        comment,
+      };
     }
     hasObject = true;
 
     objectLines += flushObjectLines(props, indentSpaces1, maxKeyPartLength);
     const classComment = classKey ? ` // "${classKey}"` : "";
-    types.push(`{${classComment}\n${objectLines}${indentSpaces0}}`);
+    return {
+      body: `{${classComment}\n${objectLines}${indentSpaces0}}`,
+      hasObject,
+      comment,
+      isMultiline: true,
+    };
   }
 
   if (typeof node.classification !== "undefined") {
@@ -133,7 +175,8 @@ function renderTSTrieNode(
     for (const key of keys) {
       const candidate = candidates[key];
       if (!candidate) continue;
-      renderObject(candidate, key);
+      const result = renderStructuredObject(candidate, key);
+      types.push(result.body);
     }
   } else {
     for (const key of JSONFieldTypeKeys) {
@@ -177,7 +220,7 @@ function renderTSTrieNode(
             throw new Error("Array candidate should have arrayChildren");
           }
           const elementType = renderTSTrieNode(
-            makeKeyPath(keyPath, key),
+            keyPath ? keyPath + "[]" : ".[]",
             candidate.arrayChildren,
             options,
             indentLevel
@@ -190,7 +233,10 @@ function renderTSTrieNode(
         }
 
         case "object":
-          renderObject(candidate);
+          const result = candidate.dictionaryChildren
+            ? renderDictionaryObject(candidate)
+            : renderStructuredObject(candidate);
+          types.push(result.body);
           break;
       }
     }
