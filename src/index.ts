@@ -14,8 +14,13 @@ async function main() {
     .option("-s, --spaces <spacedForTab>", "number of spaces for tab", "4")
     .option("-t, --use-tab", "use tab for indent", false)
     .option("-n, --type-name <typeName>", "type name", "JSON")
-    .option("-e ,--enum-key <key>", "enum key", collect)
-    .option("-d ,--dict-key <key>", "dictionary like key", collect)
+    .option(
+      "-d ,--dict-key <keypath>",
+      "dictionary like keypath(repeatable)",
+      collect
+    )
+    .option("-e ,--enum-key <keypath>", "enum keypath(repeatable)", collect)
+    .option("-u ,--union-by <keypath:keypath>", "union by keypath", collect)
     .argument("[files...]", "File paths to read");
   program.parse();
 
@@ -24,12 +29,15 @@ async function main() {
   const jsons = await (files.length > 0
     ? readJSONsFromFiles(files)
     : readJSONsFromSTDIN());
-  const parseOption: ParseOptions = {
-    unionBy: {
-      "pokedex[].form[]": "region",
-    },
-  };
+  const parseOption: ParseOptions = {};
 
+  if (program.opts().unionBy) {
+    parseOption.unionBy = {};
+    for (const keyPath of program.opts().unionBy) {
+      const [key, classification] = keyPath.split(":");
+      parseOption.unionBy[key] = classification;
+    }
+  }
   if (program.opts().enumKey) {
     parseOption.enumKeys = {};
     for (const keyPath of program.opts().enumKey) {
