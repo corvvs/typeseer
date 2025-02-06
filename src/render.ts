@@ -191,22 +191,27 @@ function renderTSTrieNode(
             const isEnum =
               candidate.isEnum ||
               (candidate.longCount === 0 && keys.length <= 10);
-            if (isEnum) {
+            if (candidate.isEnum) {
               if (keys.length === 1) {
                 // サイズ1のenum = 定数
                 types.push(`"${keys[0]}"`);
                 comment = "Constant";
                 break;
               } else {
-                // enumかもしれない
-                comment = Object.keys(candidate.stats)
-                  .sort()
-                  .map((key) => `"${key}"`)
-                  .join(" | ");
+                types.push(keys.map((key) => `"${key}"`).join(" | "));
+                comment = "Enum";
               }
+            } else if (candidate.longCount === 0 && keys.length <= 10) {
+              // enumかもしれない
+              comment = Object.keys(candidate.stats)
+                .sort()
+                .map((key) => `"${key}"`)
+                .join(" | ");
+              types.push(key);
             }
+          } else {
+            types.push(key);
           }
-          types.push(key);
           break;
         case "number":
         case "boolean":
