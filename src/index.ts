@@ -4,12 +4,17 @@ import { renderTSTrie } from "./render";
 import { readJSONsFromFiles, readJSONsFromSTDIN, writeAllStdout } from "./io";
 import { ParseOptions, RenderOptions } from "./options";
 
+function collect(value: string, previous: string[]) {
+  return (previous || []).concat([value]);
+}
+
 async function main() {
   const program = new Command();
   program
     .option("-s, --spaces <spacedForTab>", "number of spaces for tab", "4")
     .option("-t, --use-tab", "use tab for indent", false)
     .option("-n, --type-name <typeName>", "type name", "JSON")
+    .option("-d ,--dict-key <key>", "dictionary like key", collect)
     .argument("[files...]", "File paths to read");
   program.parse();
 
@@ -20,12 +25,20 @@ async function main() {
     : readJSONsFromSTDIN());
   const parseOption: ParseOptions = {
     unionBy: {
-      protoPayload: "methodName",
+      "pokedex[].form[]": "region",
     },
     enumKeys: {
       severity: true,
+      "protoPayload.methodName": true,
     },
   };
+  if (program.opts().dictKey) {
+    parseOption.dictionaryLikeKeys = {};
+    for (const keyPath of program.opts().dictKey) {
+      parseOption.dictionaryLikeKeys[keyPath] = true;
+    }
+  }
+
   if (parseOption.unionBy) {
     for (const keyPath in parseOption.unionBy) {
       const classification = parseOption.unionBy[keyPath];
