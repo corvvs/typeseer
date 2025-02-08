@@ -10,7 +10,7 @@
 - `-e ,--enum-key <keypath>` (複数回指定可能) 指定keypathの値が文字列の場合, Enumと考える
 - `-e ,--union-by <keypath1>:<keypath1>` (複数回指定可能) keypath1の値を, keypath2の値を基準にしたUnionとする
 - `--exclude-key <keypath>` (複数回指定可能) 指定keypathの値を除外する
-- `--include-key <keypath>` (複数回指定可能) 指定keypathの値を除外しない; 上位のkeypathが除外されている場合のみ意味がある
+- `--include-key <keypath>` (複数回指定可能) 指定keypathの値を除外しない; 1つでも指定されている場合, トップレベルが除外されているとみなされる
 
 
 ## 例

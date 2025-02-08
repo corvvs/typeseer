@@ -48,7 +48,6 @@ function renderTSTrieNode(
   options: RenderOptions,
   indentLevel = 0
 ): RenderResult {
-  console.log("renderTSTrieNode", keyPath, !!node.isValid);
   const candidates = node.candidates;
   const types: string[] = [];
   let hasObject = false;
