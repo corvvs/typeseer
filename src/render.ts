@@ -48,6 +48,7 @@ function renderTSTrieNode(
   options: RenderOptions,
   indentLevel = 0
 ): RenderResult {
+  console.log("renderTSTrieNode", keyPath, !!node.isValid);
   const candidates = node.candidates;
   const types: string[] = [];
   let hasObject = false;
@@ -104,26 +105,29 @@ function renderTSTrieNode(
     let maxKeyPartLength = 0;
     let keys = 0;
 
+    function flushProps() {
+      objectLines += flushObjectLines(props, indentSpaces1, maxKeyPartLength);
+      props.splice(0, props.length);
+      maxKeyPartLength = 0;
+    }
+
     for (const prop of Object.keys(candidate.structChildren).sort()) {
       // NOTE: 厳密なフィールド所持判定
       if (
         Object.prototype.hasOwnProperty.call(candidate.structChildren, prop)
       ) {
         const childNode = candidate.structChildren[prop]!;
+        if (!childNode.isValid) {
+          continue;
+        }
         const childType = renderTSTrieNode(
-          keyPath ? keyPath + "[]" : ".[]",
+          keyPath + "." + prop,
           childNode,
           options,
           indentLevel + 1
         );
         if (childType.hasObject) {
-          objectLines += flushObjectLines(
-            props,
-            indentSpaces1,
-            maxKeyPartLength
-          );
-          props.splice(0, props.length);
-          maxKeyPartLength = 0;
+          flushProps();
         }
 
         const childCount = childNode.count;
@@ -140,13 +144,7 @@ function renderTSTrieNode(
         });
         keys += 1;
         if (childType.hasObject) {
-          objectLines += flushObjectLines(
-            props,
-            indentSpaces1,
-            maxKeyPartLength
-          );
-          props.splice(0, props.length);
-          maxKeyPartLength = 0;
+          flushProps();
         }
       }
     }
@@ -159,8 +157,7 @@ function renderTSTrieNode(
       };
     }
     hasObject = true;
-
-    objectLines += flushObjectLines(props, indentSpaces1, maxKeyPartLength);
+    flushProps();
     const classComment = classKey ? ` // "${classKey}"` : "";
     return {
       body: `{${classComment}\n${objectLines}${indentSpaces0}}`,
@@ -247,7 +244,7 @@ function renderTSTrieNode(
   }
 
   // NOTE: types.length === 0 はたとえばすべてのデータが空配列だった場合に起きる
-  const result = types.length > 0 ? types.join(" | ") : "any";
+  const result = types.length > 0 ? types.join(" | ") : "unknown";
   return {
     body: result,
     hasObject,

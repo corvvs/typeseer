@@ -38,6 +38,10 @@ export type TSTrieStringTypeNode = TSTrieTypeNode & {
 export type TSTrieRootNode = {
   count: number;
   candidates: { [key in string]: TSTrieTypeNode };
+  /**
+   * このノードが render されるべきか
+   */
+  isValid?: boolean;
   isDictionary?: boolean;
   classification?: Classification;
 };

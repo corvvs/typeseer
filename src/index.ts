@@ -21,6 +21,8 @@ async function main() {
     )
     .option("-e ,--enum-key <keypath>", "enum keypath(repeatable)", collect)
     .option("-u ,--union-by <keypath:keypath>", "union by keypath", collect)
+    .option("--exclude-key <keypath>", "exclude keypath(repeatable)", collect)
+    .option("--include-key <keypath>", "include keypath(repeatable)", collect)
     .argument("[files...]", "File paths to read");
   program.parse();
 
@@ -48,6 +50,18 @@ async function main() {
     parseOption.dictionaryLikeKeys = {};
     for (const keyPath of program.opts().dictKey) {
       parseOption.dictionaryLikeKeys[keyPath] = true;
+    }
+  }
+  if (program.opts().excludeKey) {
+    parseOption.excludeKeys = {};
+    for (const keyPath of program.opts().excludeKey) {
+      parseOption.excludeKeys[keyPath] = true;
+    }
+  }
+  if (program.opts().includeKey) {
+    parseOption.includeKeys = {};
+    for (const keyPath of program.opts().includeKey) {
+      parseOption.includeKeys[keyPath] = true;
     }
   }
   if (parseOption.unionBy) {
